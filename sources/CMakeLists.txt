@@ -109,7 +109,7 @@ if(BUILD_PFORM) ## If paraForm is selected (Here replace parform as pform)
 endif()
 
 
-if(${WITH_MODULEFILES})
+if(WITH_MODULEFILES)
     set(MODULE_FILE "${CMAKE_BINARY_DIR}/form_${FORM_MAJOR_VERSION}.${FORM_MINOR_VERSION}.${FORM_PATCH_VERSION}")
     file(WRITE ${MODULE_FILE}
         "set FORM_HOME ${CMAKE_INSTALL_PREFIX}\n\n"
@@ -118,25 +118,25 @@ if(${WITH_MODULEFILES})
     )
 endif()
 
-if(${BUILDINFO_FILE})
-    set(BUILDINFO_FILE "BuildInfo.txt")
-    file(WRITE ${CMAKE_BINARY_DIR}/${BUILDINFO_FILE}
+if(EXPORT_BUILDLOG)
+    set(BUILDINFO_FILE "${CMAKE_BINARY_DIR}/BuildInfo.txt")
+    file(WRITE ${BUILDINFO_FILE}
         "Building Form version:     ${FORM_MAJOR_VERSION}.${FORM_MINOR_VERSION}.${FORM_PATCH_VERSION}
-         Build Platform:            ${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_HOST_SYSTEM_VERSION} ${CMAKE_HOST_SYSTEM_PROCESSOR}
-         Build Target:              ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYSTEM_PROCESSOR}
-         Build Type:                ${CMAKE_BUILD_TYPE}
-         BUILD Info:
+        Build Platform:            ${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_HOST_SYSTEM_VERSION} ${CMAKE_HOST_SYSTEM_PROCESSOR}
+        Build Target:              ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYSTEM_PROCESSOR}
+        Build Type:                ${CMAKE_BUILD_TYPE}
+        BUILD Info:
 
-            CMAKE_VERSION:          ${CMAKE_VERSION}
-            CMAKE_C_COMPILER:       ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_ARCHITECTURE_ID} ${CMAKE_C_COMPILER_VERSION}
-            CMAKE_CXX_COMPILER:     ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_ARCHITECTURE_ID} ${CMAKE_CXX_COMPILER_VERSION}
-            CMAKE_GENERATOR:        ${CMAKE_GENERATOR}
+        CMAKE_VERSION:          ${CMAKE_VERSION}
+        CMAKE_C_COMPILER:       ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_ARCHITECTURE_ID} ${CMAKE_C_COMPILER_VERSION}
+        CMAKE_CXX_COMPILER:     ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_ARCHITECTURE_ID} ${CMAKE_CXX_COMPILER_VERSION}
+        CMAKE_GENERATOR:        ${CMAKE_GENERATOR}
 
-            FORM:                   ${BUILD_FORM}
-            TFORM:                  ${BUILD_TFORM}
-            PFORM:                  ${BUILD_PFORM}
-            WITH_FLOAT:             ${WITH_FLOAT}
-            WITH_MODULEFILES:       ${WITH_MODULEFILES}
+        FORM:                   ${BUILD_FORM}
+        TFORM:                  ${BUILD_TFORM}
+        PFORM:                  ${BUILD_PFORM}
+        WITH_FLOAT:             ${WITH_FLOAT}
+        WITH_MODULEFILES:       ${WITH_MODULEFILES}
         "
     )
 endif()
@@ -148,12 +148,13 @@ elseif(BUILD_TFORM)
     install(TARGETS tform DESTINATION bin)
 elseif(BUILD_PFORM)
     install(TARGETS pform DESTINATION bin)
-elseif(WITH_MODULEFILES)
-    install(FILES ${MODULE_FILE} DESTINATION share/modulefiles/form/)
-elseif(BUILDINFO_FILE)
-    install(FILES ${BUILDINFO_FILE} DESTINATION share)
 endif()
-
+if(WITH_MODULEFILES)
+    install(FILES ${MODULE_FILE} DESTINATION share/modulefiles/form/)
+endif()
+if(EXPORT_BUILDLOG)
+    install(FILES ${BUILDINFO_FILE} DESTINATION share/)
+endif()
 install(
     FILES           "${CMAKE_SOURCE_DIR}/COPYING" 
     DESTINATION     share/license/
