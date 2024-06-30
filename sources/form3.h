@@ -44,8 +44,6 @@
 
 #else  /* HAVE_CONFIG_H */
 
-#define MAJORVERSION 5
-#define MINORVERSION 0
 
 #ifdef __DATE__
 #define PRODUCTIONDATE __DATE__
