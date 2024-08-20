@@ -69,3 +69,19 @@ doc/manual/version.tex
 
 doc/devref/devref/
 doc/manual/manual/
+
+.version
+version.h.in
+
+# Ignored name "build" folder
+*build/
+build*/
+
+# CMake generate files
+CMakeCache.txt
+CMakeFiles/
+.ninja_deps
+.ninja_log
+
+# Some ignore testing files
+test.cmake
