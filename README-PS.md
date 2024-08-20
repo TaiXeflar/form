@@ -110,7 +110,7 @@ This fork repo is from:
 
 5. Help messages feature. Always needs some manual with your preped coding coffee, right?
 
-   I've made a terminal print cmake help usage:
+   I've made a terminal print cmake help usage in `help.cmake`. In this repo, use cmake run script mode:
    ```
     help.sh
    ```
