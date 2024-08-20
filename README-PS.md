@@ -31,33 +31,35 @@ This fork repo is from:
 - CMake build: 
   
   In now days seems the cross-build obsticles are OS difference(macOS/Linux/BSD vs Windows), not seem the processor problems(x86-64/AArch64/OpenPOWER/RISC-V etc.) yet(Maybe ?), so this cmake supported repo is the solution targeting for:
-  - First priority on different local machine build development.
-  - Those who have strong favor want get rid off Cygwin/MSYS2 environment.
+  - Targets on Windows platform with MinGW-w64 and CMake local install in a direct build favor.
+  - First priority on different local machine build development with CMake.
+  - Those who have strong intolerant and want to get rid off Cygwin/MSYS2 env share-libs/DLLs(I believe there's always have kind of user).
   - If you have strong favor on using MSVC to develop on full Windows support.
-  - If you have strong favor on using other individual GCC/Clang compile with Windows API.
+  - If you have strong favor on using other individual GCC/Clang compile with pure Windows env.
 
    Of course cmake is also availiable on macOS/Linux/BSD/Cygwin/MSYS2 and other UNIX-Like OS, so this repo in future will be a template  to ensure can add more UNIX/POSIX/Windows properties in it.
 
-   And, yes, we(me) engaged issues on `--enable-float` and `parform`. So we(me)'ll find out why in a later date. 
+   And, yes, we(me) engaged issues on `--enable-float`. So we(me)'ll find out why in a later date. 
 
-- Link Libraries: GMP, MPFR, ZLIB, ZSTD are passed build via VS2022, Cygwin, WSL2 Ubuntu. We finished this.
-- Float and parform: We(me) still find out why and checking the original makefile(s) compile rules/flags etc. 
+- Link Libraries: GMP, MPFR, ZLIB, ZSTD are passed build via VS2022, Cygwin, WSL2 Ubuntu. We(me) finished this.
+- Float: We(me) still find out why and checking the original makefile(s) compile rules/flags etc. 
 
 - [Listed compilers](#avail-build-info): The listed compilers is for if you don't know what compilers to use, or want have a compare to the autoconf [configure.ac](#./configure.ac). Actually there's lots of compiler id can find at cmake website [CMAKE_<LANG>_COMPILER_ID], so I list tested C/C++ compilers that actually can run for it. Also some compiler may can run but with some limitation, that's the part we(me) need to test.
 
  - Platform:
     |Platform|CPU Arch|Environment|Test Status|Compiler|Form|TForm|PForm|==Feature==|Float|Thread|MPI|GMP|MPFR|ZLIB|ZSTD|
     |:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|:----:|
-    |Windows|Intel 64|VS2022|Tested|MSVC v143|V|V|V|                                |X|Pthread4W|MSMPI|Strawberry c|Strawberry c|V|V|
-    |Windows|Intel 64|VS2022|Tested|Clang 17.0.6|V|V|V|                             |X|Pthread4W|MSMPI|Strawberry c|Strawberry c|V|V|
-    |Windows|Intel 64|oneAPI|Tested|icx 2024.1|V|V|V|                               |X|Pthread4W|MSMPI|Strawberry c|Strawberry c|V|V|
+    |Windows|Intel 64|VS2022|Tested|MSVC v143|V|V|V|\|                                |X|Pthread4W|MSMPI|Strawberry c|Strawberry c|V|V|
+    |Windows|Intel 64|VS2022|Tested|Clang 17.0.6|V|V|V|\|                             |X|Pthread4W|MSMPI|Strawberry c|Strawberry c|V|V|
+    |Windows|Intel 64|oneAPI|Tested|icx 2024.1|V|V|V|\|                               |X|Pthread4W|MSMPI|Strawberry c|Strawberry c|V|V|
+    |Windows|Intel 64|N/A|Tested|GCC 13.1.0|V|V|V|\|                               |X|Pthread4W|MSMPI|Strawberry c|Strawberry c|V|V|
     |Windows|Intel 64|Embarcadero|Tested|bcc64 7.X|X|
     |Windows|AMD64|VS2022|Not Tested|
     |Windows|ARM64|VS2022|Not Tested|
-    |Windows|x86-64|WSL2 (Ubuntu)|Tested|GCC 11.4.0|V|V|V|                          |X|V|V|V|V|V|V|
-    |Windows|x86-64|WSL2 (Ubuntu)|Tested|NVIDIA/PGI 27.0|V|V|V|                     |X|V|V|V|V|V|V|
-    |Cygwin|x86-64|cygwin|Tested|GCC 11.5.0|V|V|V|                                  |X|V|V|V|V|V|V|
-    |MSYS2|x86-64|UCRT64|Tested|GCC 14.1.0|V|V|V|                                   |X|V|V|V|V|V|V|
+    |Windows|x86-64|WSL2 (Ubuntu)|Tested|GCC 11.4.0|V|V|V|\|                          |X|V|V|V|V|V|V|
+    |Windows|x86-64|WSL2 (Ubuntu)|Tested|NVIDIA/PGI 27.0|V|V|V|\|                     |X|V|V|V|V|V|V|
+    |Cygwin|x86-64|cygwin|Tested|GCC 11.5.0|V|V|V|\|                                  |X|V|V|V|V|V|V|
+    |MSYS2|x86-64|UCRT64|Tested|GCC 14.1.0|V|V|V|\|                                   |X|V|V|V|V|V|V|
     |MSYS2|x86-64|MINGW64|Not Tested|
     |MSYS2|x86-64|MSYS|Not Tested|
     |MSYS2|x86-64|Clang64|Not Tested|
@@ -69,6 +71,7 @@ This fork repo is from:
 
     - The CPU Arch is targeting for x86-64(Intel 64/AMD64), ARM64(Apple Silicon, Qualcomm Snapdragon, MediaTek Dimensity, NVIDIA Grace etc.) or anything else(if somewhere using PowerPC64 or RISC-V). ARM64 are no tested due to I have no avail devices.
     - The Embarcadero C++ builder C/C++ compiler is from Borland C/C++ compiler with LLVM backend. Now this compiler set is unable for CMake to test compile.
+    - Where the tested `Windows Intel64` and `WSL2(Ubuntu)` is my Gaming/Daily use NB `ROG Zephyrus S15(2020)`.
 
 ## Ideas on cmake build features and anything else
 
@@ -101,18 +104,30 @@ This fork repo is from:
    - `--enable-threaded` to `BUILD_TFORM`
    - `--enable-float` to `WITH_FLOAT`
    - `--prefix` to `INSTALL`
-   - `CC/CXX/CFLAGS/CXXFLAGS/LDFLAGS`
-   Run `cmake -P help.cmake` in the project root dir for details.
+   - `CC/CXX/CFLAGS/CXXFLAGS`
 
-3. Add CPack support. This is for any possiable FORM authors/collaborators to make a redistributable installer for public release. The CPack will invoke package manager and with properties defined in CMake settings, export out the details(Install Directory, Install files, Documents, even write on Registry).
+3. Change definition's Flag insert.
 
-4. Add CTest initial support. This function now is only avail on Unix(Apple/Cygwin/Linux/WSL2 etc.), running the test script `check.rb` with Ruby Test/Unit. 
+    Here let me explain. Where there was `-DDEBUGGING` definition been used in the Autoconf `VORM` defined flag and add to `CMAKE_C_FLAGS` and `CMAKE_CXX_FLAGS` in the initial CMake design. 
+    
+    Now I moved these from modifying `CMAKE_C_FLAGS` and `CMAKE_CXX_FLAGS` to another way:
+    - `add_definitions()`: Where definition flags in a global effect, like `-DDEBUGGING`, `-DNDEBUG`, `-DHAVE_CONFIG_H` and `-DCMAKE_VERBOSE_BUILDSTAMP`.
+    - `target_compile_definitions()`: Specified target with only need specified flags like `-DWITHPTHREAD` for `tform`, `-DWITHMPI` `-D-DPF_WITHGETENV` `-DPF_WITHLOG` for `pform` etc.
+    
+    Be sure these are C/C++ compile definition flags, not CMake Cache entry. 
 
-5. Help messages feature. Always needs some manual with your preped coding coffee, right?
+4. Add CPack support. This is for any possiable FORM authors/collaborators to make a redistributable installer for public release. The CPack will invoke package manager and with properties defined in CMake settings, export out the details(Install Directory, Install files, Documents, even write on Registry).
 
-   I've made a terminal print cmake help usage in `help.cmake`. In this repo, use cmake run script mode:
+5. Add CTest initial support. This function now is only avail on Unix(Apple/Cygwin/Linux/WSL2 etc.), running the test script `check.rb` with Ruby Test/Unit. 
+
+6. Help messages feature. Always needs some manual with your preped coding coffee, right?
+
+   I've made a terminal print cmake help usage in `cmake/help.cmake`. In this repo, run the `help` shell script/batch script:
    ```
-    help.sh
+    ./help.sh
+   ```
+   ```
+    .\help.bat
    ```
    If you needed is general cmake command line options:
    ```
@@ -218,20 +233,6 @@ These are not supported C/C++ compiler:
  - Orange C compiler.
  - Other legacy targeted for 16/32-bit target compilers.
 
-Here's the avail build target:
-- Windows 10/11 x64(Intel64/AMD64).
-- Windows 10/11 x64 based WSL2 Linux Distro.
-- MSYS2 x86-64.
-- MSYS2 MINGW64/UCRT64 x86-64. Remind build under Mingw64/UCRT64 etc. env will show the build is Windows build.
-- Cygwin x86-64.
-
-We(me)'ve tested on some target platform:
- - Windows 11 (Feature Experience Pack 1000.22700.1020.0) on Intel 64 Platform.
- - Windows 11 WSL2 (Ubuntu 22.04)
- - CentOS Linux Intel64 Platform.
- - Ubuntu 22.04 Intel64 Platform.
- - Cygwin x86-64 Environment.
- - MSYS2 (MSYS2/MINGW64/UCRT64) x86-64 Environment.
 
 
 [tueda/form appveyor branch]:https://github.com/tueda/form/tree/appveyor
