@@ -140,12 +140,22 @@ This fork repo is from:
 Before you do Form build on cmake, you should have these develop compoments:
  - CMake. Crossmake(CMake) buildsystem `cmake`. 
  - Compiler: You need a availiable C/C++ compiler for compiling Form project.
- - Library/Runtime: If Compiler or project needed C/C++ libs/runtime libraries like MPFR and GMP.
+ - Library/Runtime: If Compiler or project needed 3rd Party C/C++ libraries.
+     ```
+      GMP
+      MPFR
+      PThreads
+      MPI
+      ZLIB
+      ZSTD
+     ```
  - Generator: Generating config/rules or any build makefile utility.
       On Linux: Install develop tools via package manager(by Linux distro or homebrew `brew`).
       ```
       sudo apt/dnf/yum/brew install gcc g++ make cmake ninja-build      # via apt/dnf/yum/brew package manager, on Linux Distro
-      sudo pacman -S gcc g++ make cmake ninja-build
+      sudo pacman -S gcc g++ make cmake ninja-build                     # via Arch Linux/MSYS package manager
+      
+      sudo <PACKAGE_MANAGER> install libgmp-dev libmpfr-dev ...         # Developer Libraries.
       ```
       On macOS: You need Xcode installed and/or homebrew `brew`(for 3rd party software).
       ```
@@ -175,7 +185,7 @@ Before you do Form build on cmake, you should have these develop compoments:
       On Windows: You can manually select developer kit or use Visual Studio.
       ```
        CMake
-       MinGW-W64 / Strawberry Perl / Code::Blocks / Dev C++
+       MinGW-W64 / Strawberry Perl(Comes with a MinGW-w64 C/C++ compiler and library) / Code::Blocks / Dev C++
       ```
       - Kitware(CMake official developer) has released installer here: [Download CMake]
       - Download GCC tool chain: [Download MinGW-w64] or [Download Strawberry] or [Download DEV-C++] or [Download CodeBlocks] 
@@ -186,9 +196,45 @@ Before you do Form build on cmake, you should have these develop compoments:
             CMake for Windows
       ```
       - Select Visual Studio 2022(Community version is enough): [Download VS2022]
+     
+     You should noticed that we have not talk about `tform` and `pform` support on Windows platform yet. So:
 
+     - `tform`: We follows the pthreads desing on UNIX-like env, so we need have pthread library for Win32 like **fwbuilder/pthreads4w** or **GerHobbelt/pthread-win32** library for linking to `tform`. Passing the library's install path with `-DCMAKE_PREFIX_PATH`.
+     - `pform`: In Linux/macOS/X-BSD, you can compile `parform` with Message Passing Interface(MPI) library like **pmodel/mpich** or **open-mpi/ompi**. However on Windows platform, where MPI SDKs/runtimes is supported by Microsoft(MSMPI). So we need download from Official Microsoft website with `msmpisetup.exe` and `msmpisdk.msi`(You can install them in a same directory).
+      
 ## Build
 Run `help.sh`/`help.bat` or `cmake -P cmake/help.cmake` for futher details.
+
+Here give my build example. 
+
+Specified build without float support, static linking with GMP, MPFR, ZLIB, ZSTD, with building all(`form`+`tform`+`pform`), and with pre-built libraries installed in these directories:
+- GMP: Installed with Strawberry Perl's C library: `C:/Developer/Strawberry/c`
+- MPFR: Installed with Strawberry Perl's C library: `C:/Developer/Strawberry/c`
+- ZLIB: Local CMake build and installed in: `C:/Developer/lib/zlib`
+- ZSTD: Local CMake build and installed in: `C:/Developer/lib/zstd`
+- MPI SDK: Installation with msmpisdk.msi in: `C:/Developer/MSMPI`
+- MPI EXEC: Installation with msmpiexec.exe in: `C:/Developer/MSMPI`
+- Form build Install Directory in: `C:/Developer/Form/5.0.0-beta1`
+
+1. Clone this repo. You can do it a shallow clone if you want just build and in use.
+```
+ git clone https://github.com/TaiXeflar/form.git --depth=1
+```
+2. Enter repo and build out of source.
+```
+ cd form
+ mkdir build; cd build
+```
+3. Build with the project configure tools like GNU/Autotools or CMake.
+```
+ cmake .. -G Ninja \
+    -DCMAKE_INSTALL_PREFIX="C:/Developer/Form/5.0.0-beta1" \
+    -DCMAKE_PREFIX_PATH="C:/Developer/lib/zlib;C:/Developer/lib/zstd;C:/Developer/MSMPI;C:/Developer/Strawberry/c"
+    -DBUILD_SHARED_
+
+
+```
+4. Run your selected generator.
 
 ## Future ideas
 
