@@ -962,6 +962,63 @@ L F7 = f(10000*g5_);
 #pend_if mpi?
 assert runtime_error?
 *--#] Issue94 : 
+*--#[ Issue95 :
+#-
+#: filepatches 32
+#: largepatches 32
+#: largesize 6250000
+#: maxtermsize 1250
+#: smallsize 1250000
+#: smallextension 2500032
+#: termsinsmall 12500
+
+Off Statistics;
+
+Symbol x,n;
+
+* One fewer term than reported in the Issue, since now the
+* non-x term is in the initial definition of test.
+#define NTERMS "266905"
+
+Local test = sum_(n,1,`NTERMS',x^n) - `NTERMS'*(`NTERMS'+1)/2;
+.sort
+
+* Check all terms present
+Identify x^n?pos_ = n;
+
+Print;
+.end
+# This takes a long time for tform under valgrind.
+# tform -w4 also doesn't crash here anyway (but -w2 does).
+#pend_if valgrind? && threaded?
+# Also doesn't run properly for 32bit form.
+#require wordsize >= 4
+assert succeeded?
+assert result("test") =~ expr("0")
+*--#] Issue95 : 
+*--#[ Issue95b :
+#-
+#:filepatches        4
+#:largesize      25600
+#:maxtermsize      200
+#:smallsize      12800
+#:termsinsmall      16
+
+Off stats;
+
+#define N "323"
+S x,k;
+L F = sum_(k,1,`N',x^k);
+.sort
+
+L CheckZero = F - {`N'*(`N'+1)/2};
+id x^k?pos_ = k;
+
+Print CheckZero;
+.end
+assert succeeded?
+assert result("CheckZero") =~ expr("0")
+*--#] Issue95b : 
 *--#[ Issue97_1 :
 * "Program terminating" with oldFactArg and dot products
 V e1, e2, k1, k2;
@@ -1959,6 +2016,34 @@ else
 end
 assert result("Zero") =~ expr("0")
 *--#] Issue197 : 
+*--#[ Issue214 :
+#-
+#: MaxTermSize 500
+#: ScratchSize 1K
+#: SortIOSize 1K
+
+Off compress;
+Symbol x,y,z,i;
+CFunction f;
+
+Local test = sum_(i,1,100,f(i*(x+y))*(x+y)^20) - 52824783675150;
+Bracket f;
+.sort
+Keep Brackets;
+
+Identify f(x?) = x;
+.sort
+
+Identify x = 1;
+Identify y = 2;
+
+Print +s;
+.end
+# This is not valgrind clean under parform
+#pend_if valgrind? && mpi?
+assert succeeded?
+assert result("test") =~ expr("0")
+*--#] Issue214 :
 *--#[ Issue219 :
 * Corrupted characters in {-9223372036854775808}
 #$n32  = -2^31;
@@ -2725,9 +2810,10 @@ EOF
 #: SortIOSize 200K
 #: SubSortIOSize 200K
 
-#: SubSmallSize 100K
-#: SubSmallExtension 200K
-#: SubTermsInSmall 5K
+#: SubLargeSize 134400480
+#: SubSmallSize 12800016
+#: SubSmallExtension 19200032
+#: SubTermsInSmall 5008
 
 #define N "30"
 
@@ -2841,3 +2927,404 @@ print;
 assert succeeded?
 assert result("F") =~ expr("5000")
 *--#] Issue508 :
+*--#[ Issue512_1 :
+#-
+* Sort which fills SmallExtension:
+
+* These are the smallest buffer sizes that are OK for -w4 tform workers
+#: SmallSize 10240064
+#: SmallExtension 15360096
+#: TermsInSmall 100K
+
+Symbol x,n;
+CFunction g,f,prf;
+
+Local test = (<f(1)>+...+<f(150)>)*(<g(1)>+...+<g(350)>);
+.sort
+
+PolyRatFun prf;
+
+Identify f(x?) = prf(n-x,n+x);
+
+.end
+# Fails due to polynomial size on 32bit builds
+#require wordsize >= 4
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("Please increase SmallExtension setup parameter.")
+*--#] Issue512_1 :
+*--#[ Issue512_2 :
+#-
+
+* Sort which fills SubSmallExtension:
+* These are the default sizes at the time of writing:
+#: SubSmallSize 2560016
+#: SubSmallExtension 3840032
+* These are not default:
+#: SubTermsInSmall 100K
+
+Symbol x,n;
+CFunction f,g,prf;
+
+Local test = 1;
+.sort
+
+PolyRatFun prf;
+Term;
+	Multiply (<f(1)>+...+<f(150)>)*(<g(1)>+...+<g(100)>);
+	Identify f(x?) = prf(n-x,n+x);
+EndTerm;
+
+.end
+# Fails due to polynomial size on 32bit builds
+#require wordsize >= 4
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("Please increase SubSmallExtension setup parameter.")
+*--#] Issue512_2 :
+*--#[ Issue512_3 :
+#-
+
+* Sort which fits in SmallExtension, but needs GarbHand
+#: SmallSize 10240064
+#: SmallExtension 20360K
+#: TermsInSmall 100K
+
+Symbol x,n;
+CFunction g,f,prf;
+
+Local test = (<f(1)>+...+<f(150)>)*(<g(1)>+...+<g(350)>);
+.sort
+
+PolyRatFun prf;
+Identify f(x?) = prf(n-x,n+x);
+
+.end
+# Fails due to polynomial size on 32bit builds
+#require wordsize >= 4
+assert succeeded?
+*--#] Issue512_3 :
+*--#[ Issue512_4 :
+#-
+
+* Sort which fits in SubSmallExtension, but needs GarbHand
+* These are the default sizes at the time of writing:
+#: SubSmallSize 2560016
+* These are not default:
+#: SubSmallExtension 5090K
+#: SubTermsInSmall 100K
+
+Symbol x,n;
+CFunction f,g,prf;
+
+Local test = 1;
+.sort
+
+PolyRatFun prf;
+Term;
+	Multiply (<f(1)>+...+<f(150)>)*(<g(1)>+...+<g(100)>);
+	Identify f(x?) = prf(n-x,n+x);
+EndTerm;
+
+.end
+# Fails due to polynomial size on 32bit builds
+#require wordsize >= 4
+assert succeeded?
+*--#] Issue512_4 :
+*--#[ Issue525 :
+#:threadbucketsize 5
+#:processbucketsize 5
+S x;
+L F = (1-x)^100;
+L F1 = 1;
+L F2 = 1;
+.sort
+#define x "0"
+if (expression(F1)) redefine x "1";
+.sort
+id x = `x';
+P F;
+.end
+assert succeeded?
+assert result("F") =~ expr("0")
+*--#] Issue525 :
+*--#[ Issue544 :
+#-
+Off Statistics;
+
+Symbol x;
+Vector D,p,q;
+CFunction tag;
+CFunction f,g,h,i,j,k,l,m;
+CFunction F,G,H,I,J,K,L,M;
+
+#define N "3"
+
+Local test =
+	#do i = -`N',`N'
+		+ f(p,`i')
+		+ f(-q,`i')
+		+ f(p,q,`i')
+		+ f(-p,q,`i')
+		+ f(p,-q,`i')
+		+ f(-p,-q,`i')
+	#enddo
+	;
+
+* Use tags to make sure the cancellation is unique
+Identify f(?a) =
+	+ (f(?a) - F(?a)) * tag(f,?a)
+	+ (g(?a) - G(?a)) * tag(g,?a)
+	+ (h(?a) - H(?a)) * tag(h,?a)
+	+ (i(?a) - I(?a)) * tag(i,?a)
+	+ (j(?a) - J(?a)) * tag(j,?a)
+	+ (k(?a) - K(?a)) * tag(k,?a)
+	+ (l(?a) - L(?a)) * tag(l,?a)
+	+ (m(?a) - M(?a)) * tag(m,?a)
+	;
+.sort
+
+Identify f(p?,x?) = D.p^x;
+Identify f(p?,q?,x?) = p.q^x;
+Identify g(p?,x?) = D.p^-x;
+Identify g(p?,q?,x?) = p.q^-x;
+
+Identify h(p?,x?) = (D.p)^x;
+Identify h(p?,q?,x?) = (p.q)^x;
+Identify i(p?,x?) = D.p^(x);
+Identify i(p?,q?,x?) = p.q^(x);
+
+* And with - signs on the pattern vector:
+Identify j(-p?,x?) = D.p^x;
+Identify j(-p?,-q?,x?) = p.q^x;
+Identify k(-p?,x?) = D.p^-x;
+Identify k(-p?,-q?,x?) = p.q^-x;
+
+Identify l(-p?,x?) = (D.p)^x;
+Identify l(-p?,-q?,x?) = (p.q)^x;
+Identify m(-p?,x?) = D.p^(x);
+Identify m(-p?,-q?,x?) = p.q^(x);
+
+* Cancel all terms, with no pattern for the power
+#do i = -`N',`N'
+	Identify F(p?,`i') = D.p^`i';
+	Identify F(p?,q?,`i') = p.q^`i';
+	Identify G(p?,`i') = D.p^-`i';
+	Identify G(p?,q?,`i') = p.q^-`i';
+
+	Identify H(p?,`i') = (D.p)^`i';
+	Identify H(p?,q?,`i') = (p.q)^`i';
+	Identify I(p?,`i') = D.p^(`i');
+	Identify I(p?,q?,`i') = p.q^(`i');
+
+	Identify J(-p?,`i') = D.p^`i';
+	Identify J(-p?,-q?,`i') = p.q^`i';
+	Identify K(-p?,`i') = D.p^-`i';
+	Identify K(-p?,-q?,`i') = p.q^-`i';
+
+	Identify L(-p?,`i') = (D.p)^`i';
+	Identify L(-p?,-q?,`i') = (p.q)^`i';
+	Identify M(-p?,`i') = D.p^(`i');
+	Identify M(-p?,-q?,`i') = p.q^(`i');
+#enddo
+
+Print +s;
+.end
+assert succeeded?
+assert result("test") =~ expr("0")
+*--#] Issue544 :
+*--#[ Issue563 :
+#: SubTermsInSmall 50
+
+CFunction f,g;
+Symbol a;
+
+* Generate a function arg with more than SubTermsInSmall terms:
+* Make sure one of the factors has more than SubTermsInSmall itself.
+* Use functions to trigger LocalConvertToPoly and the EndSort there.
+Local F = f((g(1)+g(2)) * (<g(1)>+...+<g(65)>)) - g(1+2, 1+...+65);
+
+FactArg f;
+Argument f;
+	Identify g(a?) = a;
+EndArgument;
+Identify g(?a) = f(?a);
+
+Print F;
+.end
+assert succeeded?
+assert result("F") =~ expr("0")
+*--#] Issue563 :
+*--#[ Issue567_1 :
+CF rat;
+Vector v;
+PolyRatFun rat;
+Local F = rat(v,1);
+.end
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("ERROR: polynomials and polyratfuns must contain symbols only")
+*--#] Issue567_1 :
+*--#[ Issue567_2 :
+CF rat;
+Index i;
+PolyRatFun rat;
+Local F = rat(i,1);
+.end
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("ERROR: polynomials and polyratfuns must contain symbols only")
+*--#] Issue567_2 :
+*--#[ Issue567_3a :
+CF rat;
+Function f;
+PolyRatFun rat;
+Local F = rat(f,1);
+.end
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("ERROR: polynomials and polyratfuns must contain symbols only")
+*--#] Issue567_3a :
+*--#[ Issue567_3b :
+CF rat;
+CFunction f;
+PolyRatFun rat;
+Local F = rat(f,1);
+.end
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("ERROR: polynomials and polyratfuns must contain symbols only")
+*--#] Issue567_3b :
+*--#[ Issue567_3c :
+CF rat;
+Table f(1);
+PolyRatFun rat;
+Local F = rat(f,1);
+.end
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("ERROR: polynomials and polyratfuns must contain symbols only")
+*--#] Issue567_3c :
+*--#[ Issue567_3d :
+CF rat;
+CTable f(1);
+PolyRatFun rat;
+Local F = rat(f,1);
+.end
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("ERROR: polynomials and polyratfuns must contain symbols only")
+*--#] Issue567_3d :
+*--#[ Issue567_3e :
+CF rat;
+Tensor f;
+PolyRatFun rat;
+Local F = rat(f,1);
+.end
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("ERROR: polynomials and polyratfuns must contain symbols only")
+*--#] Issue567_3e :
+*--#[ Issue567_3f :
+CF rat;
+CTensor f;
+PolyRatFun rat;
+Local F = rat(f,1);
+.end
+# Runtime errors may freeze ParFORM.
+#pend_if mpi?
+assert runtime_error?("ERROR: polynomials and polyratfuns must contain symbols only")
+*--#] Issue567_3f :
+*--#[ Issue577_1 :
+#-
+Off stats;
+Symbol x,y,z;
+
+Local test1 = 1;
+.sort
+Hide test1;
+Local test2 = 2;
+.sort
+
+Local test3 = 3;
+
+#if ( isnumerical(test1) )
+  #message test1
+#endif
+#if ( isnumerical(test2) )
+  #message test2
+#endif
+* This causes and error and terminate: test3 is not defined when preprocessing.
+*#if ( isnumerical(test3) )
+*  #message test3
+*#endif
+#message module1
+.sort
+
+#if ( isnumerical(test1) )
+  #message test1
+#endif
+#if ( isnumerical(test2) )
+  #message test2
+#endif
+#if ( isnumerical(test3) )
+  #message test3
+#endif
+#message module2
+.sort
+
+Local test4 = x*firstterm_(test1) + y*firstterm_(test2) + z*firstterm_(test3);
+Local test5 = x*firstterm_(test4);
+
+Multiply 2;
+
+print;
+.end
+# ParFORM has valgrind errors with this. See discussion in PR 586.
+#pend_if mpi?
+assert succeeded?
+assert result("test2") =~ expr("4")
+assert result("test3") =~ expr("6")
+assert result("test4") =~ expr("6*z + 4*y + 2*x")
+# This one does not work in TFORM. Consider it to be "illegal".
+# assert result("test5") =~ expr("12*x*z")
+assert stdout =~ exact_pattern(<<'EOF')
+~~~test1
+~~~test2
+~~~module1
+~~~test1
+~~~test2
+~~~test3
+~~~module2
+EOF
+*--#] Issue577_1 :
+*--#[ Issue577_2 :
+#-
+Off stats;
+
+Local test3 = 3;
+
+* This causes and error and terminate: test3 is not defined when preprocessing.
+#if ( isnumerical(test3) )
+  #message test3
+#endif
+.end
+# ParFORM has valgrind errors with this. See discussion in PR 586.
+#pend_if mpi?
+assert runtime_error?("isnumerical: expression is not yet defined!")
+*--#] Issue577_2 :
+*--#[ PullReq535 :
+* This test requires more than the specified 50K workspace.
+#:maxtermsize 200
+#:workspace 50000
+S x1,...,x19;
+L F = (x1+...+x19)^4;
+Format O1;
+.sort
+#optimize F
+L G = `optimvalue_';
+P G;
+.end
+assert succeeded?
+assert result("G") =~ expr("389")
+*--#] PullReq535 :

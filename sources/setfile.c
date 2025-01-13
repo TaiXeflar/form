@@ -573,7 +573,8 @@ int AllocSetups(VOID)
 #endif
 	AM.S0 = 0;
 	AM.S0 = AllocSort(LargeSize,SmallSize,SmallEsize,TermsInSmall
-					,MaxPatches,MaxFpatches,IOsize);
+					,MaxPatches,MaxFpatches,IOsize,0);
+	/* AM.S0->file.ziosize was already set to a (larger) value by AllocSort, here it is re-set. */
 #ifdef WITHZLIB
 	AM.S0->file.ziosize = IOsize;
 #ifndef WITHPTHREADS
@@ -728,6 +729,8 @@ int AllocSetups(VOID)
 	AM.NumStoreCaches = sp->value;
 	sp = GetSetupPar((UBYTE *)"sizestorecache");
 	AM.SizeStoreCache = sp->value;
+	/* Make sure this is a multiple of sizeof(WORD). */
+	AM.SizeStoreCache = ((AM.SizeStoreCache+sizeof(WORD)-1)/sizeof(WORD))*sizeof(WORD);
 #ifndef WITHPTHREADS
 /*
 	Install the store caches (15-aug-2006 JV)
@@ -847,21 +850,31 @@ VOID WriteSetup(VOID)
 		Routine allocates a complete struct for sorting.
 		To be used for the main allocation of the sort buffers, and
 		in a later stage for the function and subroutine sort buffers.
+		The level arg denotes a main buffer allocation (0) or a sub-buffer
+		allocation (1), used only for printing warning messages for buffer
+		size adjustments in DEBUGGING mode.
 */
-
-SORTING *AllocSort(LONG LargeSize, LONG SmallSize, LONG SmallEsize, LONG TermsInSmall,
-                   int MaxPatches, int MaxFpatches, LONG IOsize)
+SORTING *AllocSort(LONG inLargeSize, LONG inSmallSize, LONG inSmallEsize, LONG inTermsInSmall,
+                   int inMaxPatches, int inMaxFpatches, LONG inIOsize, int level)
 {
-	LONG allocation,longer,terms2insmall,sortsize,longerp;
+	LONG LargeSize = inLargeSize;
+	LONG SmallSize = inSmallSize;
+	LONG SmallEsize = inSmallEsize;
+	LONG TermsInSmall = inTermsInSmall;
+	int MaxPatches = inMaxPatches;
+	int MaxFpatches = inMaxFpatches;
+	LONG IOsize = inIOsize;
+
+	LONG longer,terms2insmall,sortsize,longerp;
 	LONG IObuffersize = IOsize;
 	LONG IOtry;
 	SORTING *sort;
-	int i = 0, j = 0;
+	int fname2Size = 0, j = 0;
 	char *s;
 	if ( AM.S0 != 0 ) {
-		s = FG.fname2; i = 0;
-		while ( *s ) { s++; i++; }
-		i += 16;
+		s = FG.fname2; fname2Size = 0;
+		while ( *s ) { s++; fname2Size++; }
+		fname2Size += 16;
 	}
 	if ( MaxFpatches < 4 ) MaxFpatches = 4;
 	longer = MaxPatches > MaxFpatches ? MaxPatches : MaxFpatches;
@@ -876,7 +889,6 @@ SORTING *AllocSort(LONG LargeSize, LONG SmallSize, LONG SmallEsize, LONG TermsIn
 	terms2insmall = 2*TermsInSmall;  /* Used to be just + 100 rather than *2 */
 	if ( SmallEsize < (SmallSize*3)/2 ) SmallEsize = (SmallSize*3)/2;
 	if ( LargeSize > 0 && LargeSize < 2*SmallSize ) LargeSize = 2*SmallSize;
-/*	if ( SmallEsize < 3*AM.MaxTer ) SmallEsize = 3*AM.MaxTer; */
 	SmallEsize = (SmallEsize+15) & (-16L);
 	if ( LargeSize < 0 ) LargeSize = 0;
 	sortsize = sizeof(SORTING);
@@ -898,24 +910,27 @@ SORTING *AllocSort(LONG LargeSize, LONG SmallSize, LONG SmallEsize, LONG TermsIn
 
 	IOtry = ((LargeSize+SmallEsize)/MaxFpatches-2*AM.MaxTer)/sizeof(WORD)-COMPINC;
 
-	if ( (LONG)(IObuffersize*sizeof(WORD)) < IOtry )
-		IObuffersize = (IOtry+sizeof(WORD)-1)/sizeof(WORD);
+	/* Here both IObuffersize and IOtry are in units of sizeof(WORD). */
+	if ( IObuffersize < IOtry ) {
+		IObuffersize = IOtry;
+	}
 
-	allocation =
-		 3*sizeof(POSITION)*(LONG)longer				/* Filepositions!! */
-		+2*sizeof(WORD *)*longer
-		+2*(longerp*(sizeof(WORD *)+sizeof(WORD)))
-		+(3*longerp+2)*sizeof(WORD)
-#ifdef WITHZLIB
-		+(2*longerp+4)*sizeof(WORD)
+#if DEBUGGING
+	char *prefix;
+	if ( level == 0 ) { prefix = ""; }
+	else { prefix = "Sub"; }
+	if ( LargeSize != inLargeSize ) { MesPrint("Warning: %sLargeSize adjusted: %l -> %l", prefix, inLargeSize, LargeSize); }
+	if ( SmallSize != inSmallSize ) { MesPrint("Warning: %sSmallSize adjusted: %l -> %l", prefix, inSmallSize, SmallSize); }
+	if ( SmallEsize != inSmallEsize ) {MesPrint("Warning: %sSmallEsize adjusted: %l -> %l", prefix, inSmallEsize, SmallEsize); }
+	if ( TermsInSmall != inTermsInSmall ) { MesPrint("Warning: %sTermsInSmall adjusted: %l -> %l", prefix, inTermsInSmall, TermsInSmall); }
+	if ( MaxPatches != inMaxPatches ) { MesPrint("Warning: MaxPatches adjusted: %d -> %d", inMaxPatches, MaxPatches); }
+	if ( MaxFpatches != inMaxFpatches ) {MesPrint("Warning: MaxFPatches adjusted: %d -> %d", inMaxFpatches, MaxFpatches); }
+	/* This one is always changed if the LargeSize has not been... */
+	/* if ( IObuffersize != inIOsize/(LONG)sizeof(WORD) ) { MesPrint("Warning: IOsize adjusted: %l -> %l", inIOsize/sizeof(WORD), IObuffersize); } */
 #endif
-		+terms2insmall*sizeof(WORD *)
-		+terms2insmall*sizeof(WORD *)/2
-		+LargeSize
-		+SmallEsize
-		+sortsize
-		+IObuffersize*sizeof(WORD) + i + 16;
-	sort = (SORTING *)Malloc1(allocation,"sort buffers");
+
+	/* Allocate separate buffers for most struct members, for better testing and debugging with valgrind. */
+	sort = Malloc1(sizeof(*sort), "AllocSort: sorting struct");
 
 	sort->LargeSize = LargeSize/sizeof(WORD);
 	sort->SmallSize = SmallSize/sizeof(WORD);
@@ -925,33 +940,38 @@ SORTING *AllocSort(LONG LargeSize, LONG SmallSize, LONG SmallEsize, LONG TermsIn
 	sort->TermsInSmall = TermsInSmall;
 	sort->Terms2InSmall = terms2insmall;
 
-	sort->sPointer = (WORD **)(sort+1);
-	sort->SplitScratch = sort->sPointer + terms2insmall;
-	sort->Patches = (WORD **)(sort->SplitScratch + terms2insmall/2);
-	sort->pStop = sort->Patches+longer;
-	sort->poina = sort->pStop+longer;
-	sort->poin2a = sort->poina + longerp;
-	sort->fPatches = (POSITION *)(sort->poin2a+longerp);
-	sort->fPatchesStop = sort->fPatches + longer;
-	sort->inPatches = sort->fPatchesStop + longer;
-	sort->tree = (WORD *)(sort->inPatches + longer);
-	sort->used = sort->tree+longerp;
+	sort->sPointer     = Malloc1(sizeof(*(sort->sPointer    ))*terms2insmall, "AllocSort: sPointer");
+	sort->Patches      = Malloc1(sizeof(*(sort->Patches     ))*longer, "AllocSort: Patches");
+	sort->pStop        = Malloc1(sizeof(*(sort->pStop       ))*longer, "AllocSort: pStop");
+	sort->poina        = Malloc1(sizeof(*(sort->poina       ))*longerp, "AllocSort: poina");
+	sort->poin2a       = Malloc1(sizeof(*(sort->poin2a      ))*longerp, "AllocSort: poin2a");
+
+	sort->fPatches     = Malloc1(sizeof(*(sort->fPatches    ))*longer, "AllocSort: fPatches");
+	sort->fPatchesStop = Malloc1(sizeof(*(sort->fPatchesStop))*longer, "AllocSort: fPatchesStop");
+	sort->inPatches    = Malloc1(sizeof(*(sort->inPatches   ))*longer, "AllocSort: inPatches");
+	sort->tree         = Malloc1(sizeof(*(sort->tree        ))*longerp, "AllocSort: tree");
+	sort->used         = Malloc1(sizeof(*(sort->used        ))*longerp, "AllocSort: used");
+
 #ifdef WITHZLIB
-	sort->fpcompressed = sort->used+longerp;
-	sort->fpincompressed = sort->fpcompressed+longerp+2;
-	sort->ktoi = sort->fpincompressed+longerp+2;
+	sort->fpcompressed   = Malloc1(sizeof(*(sort->fpcompressed  ))*(longerp+2), "AllocSort: fpcompressed");
+	sort->fpincompressed = Malloc1(sizeof(*(sort->fpincompressed))*(longerp+2), "AllocSort: fpincompressed");
 	sort->zsparray = 0;
-#else
-	sort->ktoi = sort->used + longerp;
 #endif
-	sort->lBuffer = (WORD *)(sort->ktoi + longerp + 2);
+
+	sort->ktoi         = Malloc1(sizeof(*(sort->ktoi))*(longerp+2), "AllocSort: ktoi");
+
+	// The combined Large buffer and Small buffer (+ extension) are used.
+	// They must be allocated together.
+	sort->lBuffer      = Malloc1(sizeof(*(sort->lBuffer))*(sort->LargeSize+sort->SmallEsize), "AllocSort: lBuffer+sBuffer");
 	sort->lTop = sort->lBuffer+sort->LargeSize;
+
 	sort->sBuffer = sort->lTop;
 	if ( sort->LargeSize == 0 ) { sort->lBuffer = 0; sort->lTop = 0; }
 	sort->sTop = sort->sBuffer + sort->SmallSize;
 	sort->sTop2 = sort->sBuffer + sort->SmallEsize;
 	sort->sHalf = sort->sBuffer + (LONG)((sort->SmallSize+sort->SmallEsize)>>1);
-	sort->file.PObuffer = (WORD *)(sort->sTop2);
+
+	sort->file.PObuffer = Malloc1(IObuffersize*sizeof(*(sort->file.PObuffer))+fname2Size+16, "AllocSort: PObuffer");
 	sort->file.POstop = sort->file.PObuffer+IObuffersize;
 	sort->file.POsize = IObuffersize * sizeof(WORD);
 	sort->file.POfill = sort->file.POfull = sort->file.PObuffer;
@@ -962,7 +982,6 @@ SORTING *AllocSort(LONG LargeSize, LONG SmallSize, LONG SmallEsize, LONG TermsIn
 	sort->file.pthreadslock = dummylock;
 #endif
 #ifdef WITHZLIB
-/*	sort->file.ziosize = IOsize; */
 	sort->file.ziosize = IObuffersize*sizeof(WORD);
 	sort->file.ziobuffer = 0;
 #endif
