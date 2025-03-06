@@ -1,0 +1,41 @@
+
+
+set(FORM_FOUND FALSE)
+set(TFORM_FOUND FALSE)
+set(PFORM_FOUND FALSE)
+
+get_filename_component(_Form_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(_Form_INSTALL_PREFIX "${_Form_CMAKE_DIR}/../.." PATH)
+
+set(FORM_INSTALL_VERSION "@FORM_MAJOR_VERSION@.@FORM_MINOR_VERSION@.@FORM_PATCH_VERSION@")
+
+find_program(FORM_EXE 
+    NAMES form 
+    PATHS ${_Form_INSTALL_PREFIX}/bin)
+if(FORM_EXE)
+    set(FORM_FOUND TRUE)
+endif()
+
+find_program(TFORM_EXE 
+    NAMES tform 
+    PATHS ${_Form_INSTALL_PREFIX}/bin)
+if(TFORM_EXE)
+    set(TFORM_FOUND TRUE)
+endif()
+
+find_program(PFORM_EXE
+    NAMES pform parform
+    PATHS ${_Form_INSTALL_PREFIX}/bin)
+if(PFORM_EXE)
+    set(PFORM_FOUND TRUE)
+endif()
+
+message(CHECK_START "Checking FORM")
+if(FORM_EXE OR TFORM_EXE OR PFORM_EXE)
+    message(CHECK_PASS "Found version:  ${FORM_INSTALL_VERSION}")
+    message(STATUS "FORM(Sequential):   ${FORM_FOUND}")
+    message(STATUS "FORM(Thread):       ${TFORM_FOUND}")
+    message(STATUS "FORM(MPI):          ${PFORM_FOUND}")
+else()
+    message(CHECK_FAIL "Failed")
+endif()
