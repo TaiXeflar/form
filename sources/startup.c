@@ -64,34 +64,53 @@
 /*
  * VERSIONSTR is the version information printed in the header line.
  */
-#ifdef HAVE_CONFIG_H
-	/* We have also version.h. */
-	#include "version.h"
-	#ifndef REPO_VERSION
-		#define REPO_VERSION STRINGIFY(REPO_MAJOR_VERSION) "." STRINGIFY(REPO_MINOR_VERSION)
-	#endif
-	#ifndef REPO_DATE
-		/* The build date, instead of the repo date. */
-		#define REPO_DATE __DATE__
-	#endif
-	#ifdef REPO_REVISION
-		#define VERSIONSTR FORMNAME " " REPO_VERSION " (" REPO_DATE ", " REPO_REVISION ")"
-	#else
-		#define VERSIONSTR FORMNAME " " REPO_VERSION " (" REPO_DATE ")"
-	#endif
-	#define MAJORVERSION REPO_MAJOR_VERSION
-	#define MINORVERSION REPO_MINOR_VERSION
+ #ifdef HAVE_CONFIG_H
+ #ifdef CMAKE_VERBOSE_BUILDSTAMP
+	 #include "version.h"
+	 #ifndef REPO_VERSION
+		 #define REPO_VERSION STRINGIFY(REPO_MAJOR_VERSION) "." STRINGIFY(REPO_MINOR_VERSION) "." STRINGIFY(REPO_PATCH_VERSION) " [" STRINGIFY(REPO_BUILD_TYPE) ", " STRINGIFY(REPO_BUILD_COMPILER) " build]"
+	 #endif
+	 #ifndef REPO_DATE
+		 /* The build date, instead of the repo date. */
+		 #define REPO_DATE __DATE__
+	 #endif
+	 #ifdef REPO_REVISION
+		 #define VERSIONSTR FORMNAME " " REPO_VERSION " (" REPO_DATE ", " REPO_REVISION ")"
+	 #else
+		 #define VERSIONSTR FORMNAME " " REPO_VERSION " (" STRINGIFY(REPO_BUILD_OS) " " STRINGIFY(REPO_BUILD_ARCH) ", " REPO_DATE ")"
+	 #endif
+	 #define MAJORVERSION REPO_MAJOR_VERSION
+	 #define MINORVERSION REPO_MINOR_VERSION
+	 #define PATCHVERSION REPO_PATCH_VERSION
+ #else
+	 /* We have also version.h. */
+	 #include "version.h"
+	 #ifndef REPO_VERSION
+		 #define REPO_VERSION STRINGIFY(REPO_MAJOR_VERSION) "." STRINGIFY(REPO_MINOR_VERSION)
+	 #endif
+	 #ifndef REPO_DATE
+		 /* The build date, instead of the repo date. */
+		 #define REPO_DATE __DATE__
+	 #endif
+	 #ifdef REPO_REVISION
+		 #define VERSIONSTR FORMNAME " " REPO_VERSION " (" REPO_DATE ", " REPO_REVISION ")"
+	 #else
+		 #define VERSIONSTR FORMNAME " " REPO_VERSION " (" REPO_DATE ")"
+	 #endif
+	 #define MAJORVERSION REPO_MAJOR_VERSION
+	 #define MINORVERSION REPO_MINOR_VERSION
+ #endif
 #else
-	/*
-	 * Otherwise, form3.h defines MAJORVERSION, MINORVERSION and PRODUCTIONDATE,
-	 * possibly BETAVERSION.
-	 */
-	#ifdef BETAVERSION
-		#define VERSIONSTR__ STRINGIFY(MAJORVERSION) "." STRINGIFY(MINORVERSION) "Beta"
-	#else
-		#define VERSIONSTR__ STRINGIFY(MAJORVERSION) "." STRINGIFY(MINORVERSION)
-	#endif
-	#define VERSIONSTR FORMNAME " " VERSIONSTR__ " (" PRODUCTIONDATE ")"
+ /*
+  * Otherwise, form3.h defines MAJORVERSION, MINORVERSION and PRODUCTIONDATE,
+  * possibly BETAVERSION.
+  */
+ #ifdef BETAVERSION
+	 #define VERSIONSTR__ STRINGIFY(MAJORVERSION) "." STRINGIFY(MINORVERSION) "Beta"
+ #else
+	 #define VERSIONSTR__ STRINGIFY(MAJORVERSION) "." STRINGIFY(MINORVERSION)
+ #endif
+ #define VERSIONSTR FORMNAME " " VERSIONSTR__ " (" PRODUCTIONDATE ")"
 #endif
 
 /*
