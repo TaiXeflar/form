@@ -20,6 +20,9 @@ config.status
 configure
 stamp-h1
 
+# CMake build dir
+build*/
+
 sources/version.h
 sources/form
 sources/tform
